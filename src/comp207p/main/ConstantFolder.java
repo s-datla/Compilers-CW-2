@@ -13,13 +13,9 @@ import org.apache.bcel.classfile.ConstantPool;
 import org.apache.bcel.classfile.ConstantString;
 import org.apache.bcel.classfile.Constant;
 import org.apache.bcel.classfile.ConstantUtf8;
+import org.apache.bcel.classfile.Method;
 
-import org.apache.bcel.generic.ClassGen;
-import org.apache.bcel.generic.ConstantPoolGen;
-import org.apache.bcel.generic.InstructionHandle;
-import org.apache.bcel.generic.InstructionList;
-import org.apache.bcel.generic.MethodGen;
-import org.apache.bcel.generic.TargetLostException;
+import org.apache.bcel.generic.*;
 
 import org.apache.bcel.util.InstructionFinder;
 
@@ -37,6 +33,7 @@ public class ConstantFolder
 	{
 		try{
 			this.parser = new ClassParser(classFilePath);
+			System.out.println(classFilePath);
 			this.original = this.parser.parse();
 			this.gen = new ClassGen(this.original);
 		} catch(IOException e){
@@ -44,7 +41,18 @@ public class ConstantFolder
 		}
 	}
 	
-	private void optimizeMethod
+	private void optimizeMethod(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
+
+		Code m = method.getCode();
+		InstructionList ilist = new InstructionList(m.getCode());
+		MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), ilist,
+			cpgen);
+		for (InstructionHandle handle : ilist.getInstructionHandles()) {
+			// if(handle.getInstruction() instanceof ICONST) {
+				System.out.println(handle.getInstruction());
+			// }
+		}
+	}
 
 	public void optimize()
 	{
@@ -55,19 +63,12 @@ public class ConstantFolder
 		Constant[] constants = cp.getConstantPool();
 
 		Method[] methods = cgen.getMethods();
+		System.out.println("+++++++++++++++++++++++++++++++++++");
+		System.out.println("Printing out methods!");
 		for(Method m : methods) {
 			optimizeMethod(cgen, cpgen, m);
 		}
-
-		System.out.println(" +++++++++++++++++++++++++++++ ");
-		System.out.println(" Constants");
-		for(int i = 0; i < constants.length; i++) {
-			if(constants[i] != null) {
-				System.out.println(constants[i]);
-			}
-		}
-		System.out.println(" +++++++++++++++++++++++++++++ ");
-
+		System.out.println("+++++++++++++++++++++++++++++++++++");
 		this.optimized = gen.getJavaClass();
 	}
 
