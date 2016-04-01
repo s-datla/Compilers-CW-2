@@ -27,7 +27,7 @@ public class ConstantFolder
 	ClassGen gen = null;
 
 	JavaClass original = null;
-	JavaClass optimized = null;
+	JavaClass optimised = null;
 
 	public ConstantFolder(String classFilePath)
 	{
@@ -40,21 +40,48 @@ public class ConstantFolder
 			e.printStackTrace();
 		}
 	}
-	
-	private void optimizeMethod(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
+
+	private Number handleArithmetic(InstructionList ilist, InstructionHandle handle) {
+
+
+	}
+
+	private Boolean handleStore() {
+
+	}
+
+	private void isInstruction(InstructionList ilist, InstructionHandle handle) {
+		if(handle.getInstruction() instanceof ArithmeticInstruction ){
+
+		}
+	}
+
+
+	private void optimiseInstructions(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
 
 		Code m = method.getCode();
 		InstructionList ilist = new InstructionList(m.getCode());
 		MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), ilist,
 			cpgen);
 		for (InstructionHandle handle : ilist.getInstructionHandles()) {
-			// if(handle.getInstruction() instanceof ICONST) {
+			if(handle.getInstruction() instanceof ArithmeticInstruction ){
+				InstructionHandle nextHandle = handle.getNext();
 				System.out.println(handle.getInstruction());
-			// }
+
+			} 
 		}
+
+		ilist.setPositions();
+		mgen.setMaxStack();
+		mgen.setMaxLocals();
+
+		Method newMethod = mgen.getMethod();
+		InstructionList newIList = new InstructionList(newMethod.getCode().getCode());
+		cgen.replaceMethod(method, newMethod);
+
 	}
 
-	public void optimize()
+	public void optimise()
 	{
 		ClassGen cgen = new ClassGen(original);
 		ConstantPoolGen cpgen = cgen.getConstantPool();
@@ -63,23 +90,26 @@ public class ConstantFolder
 		Constant[] constants = cp.getConstantPool();
 
 		Method[] methods = cgen.getMethods();
+
 		System.out.println("+++++++++++++++++++++++++++++++++++");
 		System.out.println("Printing out methods!");
+		System.out.println("+++++++++++++++++++++++++++++++++++");
+
 		for(Method m : methods) {
-			optimizeMethod(cgen, cpgen, m);
+			optimiseInstructions(cgen, cpgen, m);
 		}
 		System.out.println("+++++++++++++++++++++++++++++++++++");
-		this.optimized = gen.getJavaClass();
+		this.optimised = gen.getJavaClass();
 	}
 
 	
 	public void write(String optimisedFilePath)
 	{
-		this.optimize();
+		this.optimise();
 
 		try {
 			FileOutputStream out = new FileOutputStream(new File(optimisedFilePath));
-			this.optimized.dump(out);
+			this.optimised.dump(out);
 		} catch (FileNotFoundException e) {
 			// Auto-generated catch block
 			e.printStackTrace();
