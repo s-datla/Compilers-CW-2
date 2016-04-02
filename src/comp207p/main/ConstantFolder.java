@@ -41,21 +41,53 @@ public class ConstantFolder
 		}
 	}
 
-	private Number handleArithmetic(InstructionList ilist, InstructionHandle handle) {
+	// private Number handleArithmetic(InstructionList ilist, InstructionHandle handle) {
 
+	// 	return 1;
+	// }
 
-	}
+	// // Get values from operations that generate values
 
-	private Boolean handleStore() {
+	// // ArithmeticInstruction : 
+	// // DADD, DDIV, DMUL, DNEG, DREM, DSUB, FADD, FDIV, FMUL, FNEG, FREM, FSUB, IADD, IAND, IDIV, IMUL, INEG, IOR, IREM, ISHL, ISHR, ISUB, IUSHR, IXOR, LADD, LAND, LDIV, LMUL, LNEG, LOR, LREM, LSHL, LSHR, LSUB, LUSHR, LXOR
+	// // Comparisons :
+	// // DCMPG, DCMPL, FCMPG, FCMPL, LCMP
+	// // Constants And Pushes : 
+	// // DCONST, FCONST, ICONST, LCONST, BIPUSH, SIPUSH
+	// // ConversionInstruction :
+	// // D2F, D2I, D2L, F2D, F2I, F2L, I2B, I2C, I2D, I2F, I2L, I2S, L2D, L2F, L2I
 
-	}
+	// private Number getLatestValue(Instructionlist ilist, InstructionHandle handle) {
+	// 	boolean foundLatest = false;
+	// 	InstructionHandle nextHandle = handle.getPrev();
+	// 	while(!foundLatest) {
+	// 	}
+	// }
 
-	private void isInstruction(InstructionList ilist, InstructionHandle handle) {
-		if(handle.getInstruction() instanceof ArithmeticInstruction ){
+	// private Boolean handleStore() {
+	// 	return false;
+	// }
 
+	private int isInstruction(InstructionList ilist, InstructionHandle handle) {
+		if(handle.getInstruction() instanceof ArithmeticInstruction) {
+			return 1;
+		} else if (handle.getInstruction() instanceof LocalVariableInstruction) {
+			return 2;
+		} else if (handle.getInstruction() instanceof StackInstruction) {
+			return 3;
+		} else if (handle.getInstruction() instanceof DCONST || handle.getInstruction() instanceof FCONST
+			|| handle.getInstruction() instanceof ICONST || handle.getInstruction() instanceof LCONST ) {
+			return 4;
+		} else if (handle.getInstruction() instanceof BIPUSH || handle.getInstruction() instanceof SIPUSH) {
+			return 5;
+		} else if (handle.getInstruction() instanceof DCMPG || handle.getInstruction() instanceof DCMPL
+			|| handle.getInstruction() instanceof FCMPG || handle.getInstruction() instanceof FCMPL
+			|| handle.getInstruction() instanceof LCMP) {
+			return 6;
+		} else {
+			return 0;
 		}
 	}
-
 
 	private void optimiseInstructions(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
 
@@ -64,11 +96,19 @@ public class ConstantFolder
 		MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), ilist,
 			cpgen);
 		for (InstructionHandle handle : ilist.getInstructionHandles()) {
-			if(handle.getInstruction() instanceof ArithmeticInstruction ){
-				InstructionHandle nextHandle = handle.getNext();
-				System.out.println(handle.getInstruction());
+			int type = isInstruction(ilist, handle);
+			// switch(type) {
+			// 	case 1:
+			// 	handleArithmetic(ilist,handle);
+			// 	break;
+			// 	case 3:
+			// 	handleStore(ilist,handle);
+			// 	break;
+			// 	default:a
+			// 	break;
+			// }
+			System.out.println(handle.getInstruction());
 
-			} 
 		}
 
 		ilist.setPositions();
