@@ -64,8 +64,12 @@ public class ConstantFolder
 
 	private InstructionList handleArithmetic(InstructionList ilist, InstructionHandle handle) {
 
-		return 1;
+		return null;
 	}
+
+    private InstructionList handleOther(InstructionList ilist, InstructionHandle handle){
+        return null;
+    }
 
 	// Get values from operations that generate values
 
@@ -315,66 +319,66 @@ public class ConstantFolder
             return value;
         } else if(prevHandle.getInstruction() instanceof D2F) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (float) ( (double) num);
         } else if(prevHandle.getInstruction() instanceof D2I) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (int) ( (double) num);
         } else if(prevHandle.getInstruction() instanceof D2L) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (long) ( (double) num);
         } else if(prevHandle.getInstruction() instanceof F2D) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (double) ( (float) num);
         } else if(prevHandle.getInstruction() instanceof F2I) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (int) ( (float) num);
         } else if(prevHandle.getInstruction() instanceof F2L) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (long) ( (float) num);
         } else if(prevHandle.getInstruction() instanceof I2B) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (byte) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof I2D) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (double) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof I2F) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (float) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof I2L) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (long) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof I2S) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (short) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof L2D) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (double) ( (long) num);
         } else if(prevHandle.getInstruction() instanceof L2F) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (float) ( (long) num);
         } else if(prevHandle.getInstruction() instanceof L2I) {
             Number num = handleOperations(ilist, prevHandle);
-            if(nums == null) return null;
+            if(num == null) return null;
             return (int) ( (long) num);
         }
         return null;
 	}
 
 	private InstructionList handleStore(InstructionList ilist, InstructionHandle handle) {
-
+        return null;
 	}
 
 	private int isInstruction(InstructionHandle handle) {
@@ -414,18 +418,18 @@ public class ConstantFolder
 		MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), ilist,
 			cpgen);
 		for (InstructionHandle handle : ilist.getInstructionHandles()) {
-			int type = isInstruction(ilist, handle);
-			switch(type) {
-				case 1:
-				handleArithmetic(ilist,handle);
-				break;
-				case 3:
-				handleStore(ilist,handle);
-				break;
-				default:
-                handleOther(ilist,handle);
-				break;
-			}
+			// int type = isInstruction(ilist, handle);
+			// switch(type) {
+			// 	case 1:
+			// 	handleArithmetic(ilist,handle);
+			// 	break;
+			// 	case 3:
+			// 	handleStore(ilist,handle);
+			// 	break;
+			// 	default:
+   //              handleOther(ilist,handle);
+			// 	break;
+			// }
 			System.out.println(handle.getInstruction());
 
 		}
@@ -451,11 +455,11 @@ public class ConstantFolder
 		Method[] methods = cgen.getMethods();
 
 		System.out.println("+++++++++++++++++++++++++++++++++++");
-		System.out.println("Printing out methods!");
+		System.out.println("Printing out constants!");
 		System.out.println("+++++++++++++++++++++++++++++++++++");
 
         for(Constant c : constants) {
-            System.out.println(c);
+            if(c != null) System.out.println(c);
         }
 
         System.out.println("+++++++++++++++++++++++++++++++++++");
