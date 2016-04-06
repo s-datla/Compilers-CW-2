@@ -5,15 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.bcel.classfile.ClassParser;
-import org.apache.bcel.classfile.Code;
-import org.apache.bcel.classfile.JavaClass;
-import org.apache.bcel.classfile.Method;
-import org.apache.bcel.classfile.ConstantPool;
-import org.apache.bcel.classfile.ConstantString;
-import org.apache.bcel.classfile.Constant;
-import org.apache.bcel.classfile.ConstantUtf8;
-import org.apache.bcel.classfile.Method;
+import org.apache.bcel.classfile.*;
 
 import org.apache.bcel.generic.*;
 
@@ -31,6 +23,9 @@ public class ConstantFolder
 
 	InstructionList originalilist = null;
 	InstructionList newilist = null;
+
+    Constant[] originalcp = null;
+    Constant[] newcp = null;
 
 	public ConstantFolder(String classFilePath)
 	{
@@ -373,6 +368,12 @@ public class ConstantFolder
             Number num = handleOperations(ilist, prevHandle);
             if(num == null) return null;
             return (int) ( (long) num);
+        } else if(prevHandle.getInstruction() instanceof LDC) {
+
+        } else if(prevHandle.getInstruction() instanceof LDC_W) {
+            
+        } else if(prevHandle.getInstruction() instanceof LDC2_W) {
+            
         }
         return null;
 	}
@@ -403,8 +404,8 @@ public class ConstantFolder
 	}
 
     // Removes constants related to the instruction that you need to remove
-    private ConstantPool removeConstant(InstructionList ilist, ConstantPool cp, InstructionHandle handle) {
-        return cp;
+    private Constant[] removeConstant(InstructionList ilist, Constant[] constants, InstructionHandle handle) {
+        return constants;
     }
 
     private InstructionList removeInstruction(InstructionList ilist, InstructionHandle handle) {
@@ -418,18 +419,18 @@ public class ConstantFolder
 		MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), ilist,
 			cpgen);
 		for (InstructionHandle handle : ilist.getInstructionHandles()) {
-			// int type = isInstruction(ilist, handle);
-			// switch(type) {
-			// 	case 1:
-			// 	handleArithmetic(ilist,handle);
-			// 	break;
-			// 	case 3:
-			// 	handleStore(ilist,handle);
-			// 	break;
-			// 	default:
-   //              handleOther(ilist,handle);
-			// 	break;
-			// }
+			int type = isInstruction(handle);
+			switch(type) {
+				case 1:
+				    handleArithmetic(ilist,handle);
+				break;
+				case 3:
+				    handleStore(ilist,handle);
+				break;
+				default:
+                    handleOther(ilist,handle);
+				break;
+			}
 			System.out.println(handle.getInstruction());
 
 		}
@@ -452,6 +453,9 @@ public class ConstantFolder
 		ConstantPool cp = cpgen.getConstantPool();
 		Constant[] constants = cp.getConstantPool();
 
+        this.originalcp = constants;
+        this.newcp = constants;
+
 		Method[] methods = cgen.getMethods();
 
 		System.out.println("+++++++++++++++++++++++++++++++++++");
@@ -459,7 +463,7 @@ public class ConstantFolder
 		System.out.println("+++++++++++++++++++++++++++++++++++");
 
         for(Constant c : constants) {
-            if(c != null) System.out.println(c);
+            if(c instanceof ConstantInteger) System.out.println(c);
         }
 
         System.out.println("+++++++++++++++++++++++++++++++++++");
