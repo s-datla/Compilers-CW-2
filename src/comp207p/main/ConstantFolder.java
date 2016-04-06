@@ -60,9 +60,30 @@ public class ConstantFolder
         return nums;
  	}
 
-	private InstructionList handleArithmetic(InstructionHandle handle) {
-
-		return null;
+	private boolean handleArithmetic(InstructionHandle handle) {
+        Number value = handleOperations(handle);
+        int constantIndex = 0;
+        if(value != null){
+            if (value instanceof Integer) {
+                constantIndex = originalcpgen.addInteger((int) value);
+                this.newilist.insert(handle, new LDC(constantIndex));
+                this.newilist.setPositions();
+            } else if (value instanceof Float) {
+                constantIndex = originalcpgen.addFloat((float) value);
+                this.newilist.insert(handle, new LDC(constantIndex));
+                this.newilist.setPositions();
+            } else if (value instanceof Double) {
+                constantIndex = originalcpgen.addDouble((double) value);
+                this.newilist.insert(handle, new LDC2_W(constantIndex));
+                this.newilist.setPositions();
+            } else if (value instanceof Long) {
+                constantIndex = originalcpgen.addLong((long) value);
+                this.newilist.insert(handle, new LDC2_W(constantIndex));
+                this.newilist.setPositions();
+            }
+        }
+        if(removeInstruction(handle)) return true;
+		return false;
 	}
 
 
@@ -85,8 +106,6 @@ public class ConstantFolder
         while(prevHandle != null && isInstruction(prevHandle) == 0 ){
             prevHandle = prevHandle.getPrev();
         }
-        System.out.println("PREVHANDLE: ");
-        System.out.println(prevHandle.getInstruction());
 		if(prevHandle.getInstruction() instanceof DADD) {
 			Number[] nums = getLatestValues( prevHandle);
 			if (nums == null) return null;
@@ -378,6 +397,7 @@ public class ConstantFolder
         } else if(prevHandle.getInstruction() instanceof LDC) {
             LDC ldc = (LDC) prevHandle.getInstruction();
             Number value = (Number) ldc.getValue(originalcpgen);
+            Instruction i = prevHandle.getInstruction();
             if(removeInstruction(prevHandle)) return value;
             else return null;
         } else if(prevHandle.getInstruction() instanceof LDC_W) {
@@ -426,12 +446,21 @@ public class ConstantFolder
 	}
 
     // Removes constants related to the instruction that you need to remove
-    private Constant[] removeConstant(Constant[] constants, InstructionHandle handle) {
-        return constants;
+    private boolean removeConstant(int index) {
+        System.out.println("REMOVING CONSTANT : ");
+        ConstantPool cp = originalcpgen.getConstantPool();
+        Constant[] cs = cp.getConstantPool();
+        cs[index] = null;
+        try {
+            originalcpgen = new ConstantPoolGen(cs);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private boolean removeInstruction(InstructionHandle handle) {
-        System.out.println("REMOVING : ");
+        System.out.println("REMOVING INSTRUCTION : ");
         System.out.println(handle.getInstruction());
         this.newilist.redirectBranches(handle,handle.getPrev());
         try {
@@ -440,22 +469,21 @@ public class ConstantFolder
         } catch (Exception e) {return false;}
     }
 
-	private void optimiseInstructions(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
+	private Method optimiseInstructions(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
 
 		Code m = method.getCode();
 		InstructionList ilist = new InstructionList(m.getCode());
         this.originalilist = ilist;
         this.newilist = ilist;
-		MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), this.newilist,
-			cpgen);
+
+        MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), this.newilist,
+            cpgen);
+
 		for (InstructionHandle handle : this.newilist.getInstructionHandles()) {
 			int type = isInstruction(handle);
 			switch(type) {
 				case 1:
-				    // handleArithmetic(handle);
-                    System.out.println(type);
-                    System.out.println(handle.getInstruction());
-                    System.out.println(handleOperations(handle));
+				    handleArithmetic(handle);
 				break;
 				case 2:
 				    // handleStore(handle);
@@ -472,18 +500,23 @@ public class ConstantFolder
 		}
 
 		this.newilist.setPositions();
+
+        mgen.setInstructionList(newilist);
+
 		mgen.setMaxStack();
 		mgen.setMaxLocals();
 
 		Method newMethod = mgen.getMethod();
-		cgen.replaceMethod(method, newMethod);
-
+        return newMethod;
 	}
 
 	public void optimise()
 	{
 		ClassGen cgen = new ClassGen(original);
 		ConstantPoolGen cpgen = cgen.getConstantPool();
+
+        System.out.println("ORIGINAL :: ");
+        printClass(cgen);
 
         this.originalcpgen = cpgen;
 
@@ -495,24 +528,53 @@ public class ConstantFolder
 
 		Method[] methods = cgen.getMethods();
 
-		System.out.println("+++++++++++++++++++++++++++++++++++");
-		System.out.println("Printing out constants!");
-		System.out.println("+++++++++++++++++++++++++++++++++++");
+        for(int i = 0; i < methods.length; i++) {
+            methods[i] = optimiseInstructions(cgen,cpgen,methods[i]);
+        }
+
+        gen.setConstantPool(originalcpgen);
+        gen.setMethods(methods);
+
+		this.optimised = gen.getJavaClass();
+
+        System.out.println();
+        System.out.println("NEW :: ");
+        printClass(gen);
+
+
+	}
+
+    private void printClass(ClassGen cgen) {
+        ConstantPoolGen cpgen = cgen.getConstantPool();
+        ConstantPool cp = cpgen.getConstantPool();
+        Constant[] constants = cp.getConstantPool();
+
+        Method[] methods = cgen.getMethods();
+
+        System.out.println("+++++++++++++++++++++++++++++++++++");
+        System.out.println("Printing out constants!");
+        System.out.println("+++++++++++++++++++++++++++++++++++");
 
         for(Constant c : constants) {
-            if(c instanceof ConstantInteger) System.out.println(c);
+            if(c != null && !(c instanceof ConstantUtf8)) System.out.println(c);
         }
 
         System.out.println("+++++++++++++++++++++++++++++++++++");
         System.out.println("Printing out methods!");
         System.out.println("+++++++++++++++++++++++++++++++++++");
 
-		for(Method m : methods) {
-			optimiseInstructions(cgen, cpgen, m);
-		}
-		System.out.println("+++++++++++++++++++++++++++++++++++");
-		this.optimised = gen.getJavaClass();
-	}
+        for (Method m : methods) {
+            Code m2 = m.getCode();
+            InstructionList ilist = new InstructionList(m2.getCode());
+            for (InstructionHandle h : ilist.getInstructionHandles()) {
+                System.out.println(h.getInstruction());
+            }
+
+        }
+
+        System.out.println("+++++++++++++++++++++++++++++++++++");
+
+    }
 
 	
 	public void write(String optimisedFilePath)
