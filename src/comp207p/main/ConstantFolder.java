@@ -27,6 +27,9 @@ public class ConstantFolder
     Constant[] originalcp = null;
     Constant[] newcp = null;
 
+    ConstantPoolGen originalcpgen = null;
+
+
 	public ConstantFolder(String classFilePath)
 	{
 		try{
@@ -39,32 +42,29 @@ public class ConstantFolder
 		}
 	}
 
-	private Number[] getLatestValues(InstructionList ilist, InstructionHandle handle) {
+	private Number[] getLatestValues(InstructionHandle handle) {
 		Number[] nums = new Number[2];
 		Number temp;
-		temp = handleOperations(ilist,handle);
+		temp = handleOperations(handle.getPrev());
         if(temp == null) {
             return null;
         } else {
             nums[0] = temp;
         }
-		temp = handleOperations(ilist,handle);
+		temp = handleOperations(handle.getPrev());
         if(temp == null) {
             return null;
         } else {
             nums[1] = temp;
         }
-		return nums; 
-	}
+        return nums;
+ 	}
 
-	private InstructionList handleArithmetic(InstructionList ilist, InstructionHandle handle) {
+	private InstructionList handleArithmetic(InstructionHandle handle) {
 
 		return null;
 	}
 
-    private InstructionList handleOther(InstructionList ilist, InstructionHandle handle){
-        return null;
-    }
 
 	// Get values from operations that generate values
 
@@ -77,161 +77,162 @@ public class ConstantFolder
 	// ConversionInstruction :
 	// D2F, D2I, D2L, F2D, F2I, F2L, I2B, I2C, I2D, I2F, I2L, I2S, L2D, L2F, L2I
 
-	private Number handleOperations(InstructionList ilist, InstructionHandle handle) {
+	private Number handleOperations(InstructionHandle handle) {
 		
 		// Cycles through instructions until a stack changing operation is found
 		InstructionHandle prevHandle = handle;
 
-		while(isInstruction(prevHandle) == 0 || prevHandle != null) {
-			prevHandle = prevHandle.getPrev();
-		}
-
+        while(prevHandle != null && isInstruction(prevHandle) == 0 ){
+            prevHandle = prevHandle.getPrev();
+        }
+        System.out.println("PREVHANDLE: ");
+        System.out.println(prevHandle.getInstruction());
 		if(prevHandle.getInstruction() instanceof DADD) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
 			if (nums == null) return null;
             return ((double) nums[0] + (double) nums[1] );
 		} else if(prevHandle.getInstruction() instanceof DDIV) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((double) nums[1] / (double) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof DMUL) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((double) nums[0] * (double) nums[1] ); 
 		} else if(prevHandle.getInstruction() instanceof DNEG) {
-            Number nums = handleOperations(ilist, prevHandle);
+            Number nums = handleOperations( prevHandle);
             if(nums == null) return null;
             return (0 - (double) nums );
 		} else if(prevHandle.getInstruction() instanceof DREM) {
-            Number[] nums = getLatestValues(ilist, prevHandle);
+            Number[] nums = getLatestValues( prevHandle);
             if(nums == null) return null;
             return ((double) nums[1] % (double) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof DSUB) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if(nums == null) return null;
             return ((double) nums[1] - (double) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof FADD) {
-            Number[] nums = getLatestValues(ilist, prevHandle);
+            Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((float) nums[0] + (float) nums[1] );
 		} else if(prevHandle.getInstruction() instanceof FDIV) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((float) nums[1] / (float) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof FMUL) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((float) nums[0] * (float) nums[1] ); 
 		} else if(prevHandle.getInstruction() instanceof FNEG) {
-			Number nums = handleOperations(ilist, prevHandle);
+			Number nums = handleOperations( prevHandle);
             if(nums == null) return null;
             return (0 - (float) nums );
 		} else if(prevHandle.getInstruction() instanceof FREM) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if(nums == null) return null;
             return ((float) nums[1] % (float) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof FSUB) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if(nums == null) return null;
             return ((float) nums[1] - (float) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof IADD) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((int) nums[1] + (int) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof IAND) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((int) nums[1] & (int) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof IDIV) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((int) nums[1] / (int) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof IMUL) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((double) nums[0] * (double) nums[1] ); 
 		} else if(prevHandle.getInstruction() instanceof INEG) {
-			Number nums = handleOperations(ilist, prevHandle);
+			Number nums = handleOperations( prevHandle);
             if (nums == null) return null;
             return (0 - (double) nums );
 		} else if(prevHandle.getInstruction() instanceof IOR) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((int) nums[1] | (int) nums[0] ); 
 		} else if(prevHandle.getInstruction() instanceof IREM) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((double) nums[1] % (double) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof ISHL) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((int) nums[1] << (int) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof ISHR) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((int) nums[1] >> (int) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof ISUB) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((double) nums[1] - (double) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof IUSHR) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((int) nums[1] >>> (int) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof IXOR) {
-            Number[] nums = getLatestValues(ilist, prevHandle);
+            Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((int) nums[1] ^ (int) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof LADD) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((long) nums[0] + (long) nums[1] );
 		} else if(prevHandle.getInstruction() instanceof LAND) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((long) nums[1] & (long) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof LDIV) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((long) nums[0] / (long) nums[1] );
 		} else if(prevHandle.getInstruction() instanceof LMUL) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((long) nums[0] * (long) nums[1] ); 
 		} else if(prevHandle.getInstruction() instanceof LNEG) {
-			Number nums = handleOperations(ilist, prevHandle);
+			Number nums = handleOperations( prevHandle);
             if (nums == null) return null;
             return (0 - (long) nums );
 		} else if(prevHandle.getInstruction() instanceof LOR) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((long) nums[1] | (long) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof LREM) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if(nums == null) return null;
             return ((long) nums[1] % (long) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof LSHL) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if(nums == null) return null;
             return ((long) nums[1] << (long) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof LSHR) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((long) nums[1] >> (long) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof LSUB) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((double) nums[0] - (double) nums[1] );
 		} else if(prevHandle.getInstruction() instanceof LUSHR) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((long) nums[1] >>> (long) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof LXOR) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             return ((long) nums[1] ^ (long) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof DCMPG) {
-			Number[] nums = getLatestValues(ilist, prevHandle);
+			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             double temp = (double) nums[1] - (double) nums[0];
             if (temp > 0 ) {
@@ -242,7 +243,7 @@ public class ConstantFolder
                 return 0;
             }
 		} else if(prevHandle.getInstruction() instanceof DCMPL) {
-            Number[] nums = getLatestValues(ilist, prevHandle);
+            Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             double temp = (double) nums[0] - (double) nums[1];
             if (temp > 0 ) {
@@ -254,7 +255,7 @@ public class ConstantFolder
             }
 			
 		} else if(prevHandle.getInstruction() instanceof FCMPG) {
-            Number[] nums = getLatestValues(ilist, prevHandle);
+            Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             float temp = (float) nums[1] - (float) nums[0];
             if (temp > 0 ) {
@@ -266,7 +267,7 @@ public class ConstantFolder
             }
 			
 		} else if(prevHandle.getInstruction() instanceof FCMPL) {
-            Number[] nums = getLatestValues(ilist, prevHandle);
+            Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             double temp = (float) nums[0] - (float) nums[1];
             if (temp > 0 ) {
@@ -278,7 +279,7 @@ public class ConstantFolder
             }
 			
 		} else if(prevHandle.getInstruction() instanceof LCMP) {
-            Number[] nums = getLatestValues(ilist, prevHandle);
+            Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
             long temp = (long) nums[1] - (long) nums[0];
             if (temp > 0 ) {
@@ -291,156 +292,190 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof DCONST) {
             Number value = ((DCONST) prevHandle.getInstruction()).getValue();
             if(value == null) return null;
-            return value;
+            if(removeInstruction(prevHandle)) return value;
+            else return null;
 		} else if(prevHandle.getInstruction() instanceof FCONST) {
             Number value = ((FCONST) prevHandle.getInstruction()).getValue();
             if(value == null) return null;
-            return value;
+            if(removeInstruction(prevHandle)) return value;
+            else return null;
         } else if(prevHandle.getInstruction() instanceof ICONST) {
             Number value = ((ICONST) prevHandle.getInstruction()).getValue();
             if(value == null) return null;
-            return value;
+            if(removeInstruction(prevHandle)) return value;
+            else return null;
         } else if(prevHandle.getInstruction() instanceof LCONST) {
             Number value = ((LCONST) prevHandle.getInstruction()).getValue();
             if(value == null) return null;
-            return value;
+            if(removeInstruction(prevHandle)) return value;
+            else return null;
         } else if(prevHandle.getInstruction() instanceof BIPUSH) {
             Number value = ((BIPUSH) prevHandle.getInstruction()).getValue();
             if(value == null) return null;
-            return value;
+            if(removeInstruction(prevHandle)) return value;
+            else return null;
         } else if(prevHandle.getInstruction() instanceof SIPUSH) {
             Number value = ((SIPUSH) prevHandle.getInstruction()).getValue();
             if(value == null) return null;
-            return value;
+            if(removeInstruction(prevHandle)) return value;
+            else return null;
         } else if(prevHandle.getInstruction() instanceof D2F) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (float) ( (double) num);
         } else if(prevHandle.getInstruction() instanceof D2I) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (int) ( (double) num);
         } else if(prevHandle.getInstruction() instanceof D2L) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (long) ( (double) num);
         } else if(prevHandle.getInstruction() instanceof F2D) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (double) ( (float) num);
         } else if(prevHandle.getInstruction() instanceof F2I) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (int) ( (float) num);
         } else if(prevHandle.getInstruction() instanceof F2L) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (long) ( (float) num);
         } else if(prevHandle.getInstruction() instanceof I2B) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (byte) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof I2D) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (double) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof I2F) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (float) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof I2L) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (long) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof I2S) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (short) ( (int) num);
         } else if(prevHandle.getInstruction() instanceof L2D) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (double) ( (long) num);
         } else if(prevHandle.getInstruction() instanceof L2F) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (float) ( (long) num);
         } else if(prevHandle.getInstruction() instanceof L2I) {
-            Number num = handleOperations(ilist, prevHandle);
+            Number num = handleOperations( prevHandle);
             if(num == null) return null;
             return (int) ( (long) num);
         } else if(prevHandle.getInstruction() instanceof LDC) {
-
+            LDC ldc = (LDC) prevHandle.getInstruction();
+            Number value = (Number) ldc.getValue(originalcpgen);
+            if(removeInstruction(prevHandle)) return value;
+            else return null;
         } else if(prevHandle.getInstruction() instanceof LDC_W) {
-            
+            LDC_W ldc_w = (LDC_W) prevHandle.getInstruction();
+            Number value = (Number) ldc_w.getValue(originalcpgen);
+            if(removeInstruction(prevHandle)) return value;
+            else return null;
         } else if(prevHandle.getInstruction() instanceof LDC2_W) {
-            
+            LDC2_W ldc2_w = (LDC2_W) prevHandle.getInstruction();
+            Number value = (Number) ldc2_w.getValue(originalcpgen);
+            if(removeInstruction(prevHandle)) return value;
+            else return null;
         }
         return null;
 	}
 
-	private InstructionList handleStore(InstructionList ilist, InstructionHandle handle) {
+	private InstructionList handleStore(InstructionHandle handle) {
         return null;
 	}
 
 	private int isInstruction(InstructionHandle handle) {
 		if(handle.getInstruction() instanceof ArithmeticInstruction) {
 			return 1;
-		} else if (handle.getInstruction() instanceof LocalVariableInstruction) {
+		} else if (handle.getInstruction() instanceof StoreInstruction) {
 			return 2;
-		} else if (handle.getInstruction() instanceof StackInstruction) {
-			return 3;
+		} else if (handle.getInstruction() instanceof LoadInstruction){
+            return 3;
+        } else if (handle.getInstruction() instanceof IINC) {
+            return 4;
+        } else if (handle.getInstruction() instanceof StackInstruction) {
+			return 5;
 		} else if (handle.getInstruction() instanceof DCONST || handle.getInstruction() instanceof FCONST
 			|| handle.getInstruction() instanceof ICONST || handle.getInstruction() instanceof LCONST ) {
-			return 4;
+			return 6;
 		} else if (handle.getInstruction() instanceof BIPUSH || handle.getInstruction() instanceof SIPUSH) {
-			return 5;
+			return 7;
 		} else if (handle.getInstruction() instanceof DCMPG || handle.getInstruction() instanceof DCMPL
 			|| handle.getInstruction() instanceof FCMPG || handle.getInstruction() instanceof FCMPL
 			|| handle.getInstruction() instanceof LCMP) {
-			return 6;
-		} else {
+			return 8;
+		} else if (handle.getInstruction() instanceof LDC || handle.getInstruction() instanceof LDC_W || handle.getInstruction() instanceof LDC2_W) {
+            return 9;
+        } else {
 			return 0;
 		}
 	}
 
     // Removes constants related to the instruction that you need to remove
-    private Constant[] removeConstant(InstructionList ilist, Constant[] constants, InstructionHandle handle) {
+    private Constant[] removeConstant(Constant[] constants, InstructionHandle handle) {
         return constants;
     }
 
-    private InstructionList removeInstruction(InstructionList ilist, InstructionHandle handle) {
-        return ilist;
+    private boolean removeInstruction(InstructionHandle handle) {
+        System.out.println("REMOVING : ");
+        System.out.println(handle.getInstruction());
+        this.newilist.redirectBranches(handle,handle.getPrev());
+        try {
+            this.newilist.delete(handle);
+            return true;
+        } catch (Exception e) {return false;}
     }
 
 	private void optimiseInstructions(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
 
 		Code m = method.getCode();
 		InstructionList ilist = new InstructionList(m.getCode());
-		MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), ilist,
+        this.originalilist = ilist;
+        this.newilist = ilist;
+		MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), this.newilist,
 			cpgen);
-		for (InstructionHandle handle : ilist.getInstructionHandles()) {
+		for (InstructionHandle handle : this.newilist.getInstructionHandles()) {
 			int type = isInstruction(handle);
 			switch(type) {
 				case 1:
-				    handleArithmetic(ilist,handle);
+				    // handleArithmetic(handle);
+                    System.out.println(type);
+                    System.out.println(handle.getInstruction());
+                    System.out.println(handleOperations(handle));
 				break;
-				case 3:
-				    handleStore(ilist,handle);
+				case 2:
+				    // handleStore(handle);
+                    System.out.println(type);
+                    System.out.println(handle.getInstruction());
 				break;
+                case 4:
+                    System.out.println(type);
+                    System.out.println(handle.getInstruction());
+                break;
 				default:
-                    handleOther(ilist,handle);
 				break;
 			}
-			System.out.println(handle.getInstruction());
-
 		}
 
-		ilist.setPositions();
+		this.newilist.setPositions();
 		mgen.setMaxStack();
 		mgen.setMaxLocals();
 
 		Method newMethod = mgen.getMethod();
-		InstructionList newIList = new InstructionList(newMethod.getCode().getCode());
 		cgen.replaceMethod(method, newMethod);
 
 	}
@@ -449,6 +484,8 @@ public class ConstantFolder
 	{
 		ClassGen cgen = new ClassGen(original);
 		ConstantPoolGen cpgen = cgen.getConstantPool();
+
+        this.originalcpgen = cpgen;
 
 		ConstantPool cp = cpgen.getConstantPool();
 		Constant[] constants = cp.getConstantPool();
