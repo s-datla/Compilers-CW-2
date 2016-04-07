@@ -62,6 +62,9 @@ public class ConstantFolder
 
 	private boolean handleArithmetic(InstructionHandle handle) {
         Number value = handleOperations(handle);
+        System.out.println("VALUE: ");
+        System.out.println(value);
+
         int constantIndex = 0;
         if(value != null){
             if (value instanceof Integer) {
