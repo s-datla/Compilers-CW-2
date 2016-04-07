@@ -635,7 +635,7 @@ public class ConstantFolder
 
         gen.setConstantPool(originalcpgen);
         gen.setMethods(methods);
-
+        gen.setMajor(50);
 		this.optimised = gen.getJavaClass();
 
         System.out.println();
