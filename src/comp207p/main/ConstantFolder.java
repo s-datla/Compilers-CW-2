@@ -121,7 +121,8 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof DNEG) {
             Number nums = handleOperations( prevHandle);
             if(nums == null) return null;
-            return (0 - (double) nums );
+            if(removeInstruction(prevHandle)) return (0 - (double) nums );
+            else return null;
 		} else if(prevHandle.getInstruction() instanceof DREM) {
             Number[] nums = getLatestValues( prevHandle);
             if(nums == null) return null;
@@ -145,7 +146,8 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof FNEG) {
 			Number nums = handleOperations( prevHandle);
             if(nums == null) return null;
-            return (0 - (float) nums );
+            if(removeInstruction(prevHandle)) return (0 - (float) nums );
+            else return null;
 		} else if(prevHandle.getInstruction() instanceof FREM) {
 			Number[] nums = getLatestValues( prevHandle);
             if(nums == null) return null;
@@ -173,7 +175,8 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof INEG) {
 			Number nums = handleOperations( prevHandle);
             if (nums == null) return null;
-            return (0 - (double) nums );
+            if(removeInstruction(prevHandle)) return (0 - (double) nums );
+            else return null;
 		} else if(prevHandle.getInstruction() instanceof IOR) {
 			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
@@ -221,7 +224,8 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof LNEG) {
 			Number nums = handleOperations( prevHandle);
             if (nums == null) return null;
-            return (0 - (long) nums );
+            if(removeInstruction(prevHandle)) return (0 - (long) nums );
+            else return null;
 		} else if(prevHandle.getInstruction() instanceof LOR) {
 			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
@@ -414,9 +418,116 @@ public class ConstantFolder
         return null;
 	}
 
-	private InstructionList handleStore(InstructionHandle handle) {
-        return null;
+	private boolean handleStore(InstructionHandle handle) {
+        Number value = handleOperations(handle);
+        int storeIndex = 0, constantIndex = 0;
+        InstructionHandle nextHandle = handle.getNext();
+
+        if (handle.getInstruction() instanceof ISTORE && value != null) {
+            int result = (int) value;
+            storeIndex = ((ISTORE) handle.getInstruction()).getIndex();
+
+            if(result < -32768 || result > 32768) constantIndex = originalcpgen.addInteger(result);
+
+            while (nextHandle != null && !(nextHandle.getInstruction() instanceof ISTORE && ((ISTORE) nextHandle.getInstruction()).getIndex() == storeIndex && nextHandle.getInstruction().getOpcode() == handle.getInstruction().getOpcode())){
+                if(nextHandle.getInstruction() instanceof ILOAD && ((ILOAD) nextHandle.getInstruction()).getIndex() == storeIndex) {
+                    if (result > 32767 || result <-32767) {
+                        this.newilist.insert(nextHandle, new LDC(constantIndex));
+                        this.newilist.setPositions();
+                    } else if (result < -128 || result > 127) {
+                        this.newilist.insert(nextHandle, new SIPUSH((short) value));
+                        this.newilist.setPositions();
+                    } else {
+                        this.newilist.insert(nextHandle, new BIPUSH((byte) value));
+                        this.newilist.setPositions();
+                    }
+
+                    try {
+                        nextHandle = nextHandle.getNext();
+                        boolean success = removeInstruction(nextHandle.getPrev());
+                    } catch (Exception e) {}
+                } else {
+                    nextHandle = nextHandle.getNext();
+                }
+            }
+            if(removeInstruction(handle)) return true;
+            else return false;
+        } else if (handle.getInstruction() instanceof DSTORE && value != null) {
+            double result = (double) value;
+            storeIndex = ((DSTORE) handle.getInstruction()).getIndex();
+            constantIndex = originalcpgen.addDouble(result);
+            while (nextHandle != null && !(nextHandle.getInstruction() instanceof DSTORE && ((DSTORE) nextHandle.getInstruction()).getIndex() == storeIndex && nextHandle.getInstruction().getOpcode() == handle.getInstruction().getOpcode())){
+                if(nextHandle.getInstruction() instanceof DLOAD && ((DLOAD) nextHandle.getInstruction()).getIndex() == storeIndex) {
+                    this.newilist.insert(nextHandle, new LDC2_W(constantIndex));
+                    this.newilist.setPositions();
+                    try {
+                        nextHandle = nextHandle.getNext();
+                        boolean success = removeInstruction(nextHandle.getPrev());
+                    } catch (Exception e) {}
+                } else {
+                    nextHandle = nextHandle.getNext();
+                }
+            }
+            if(removeInstruction(handle)) return true;
+            else return false;
+        } else if (handle.getInstruction() instanceof FSTORE && value != null) {
+            float result = (float) value;
+            storeIndex = ((FSTORE) handle.getInstruction()).getIndex();
+            constantIndex = originalcpgen.addFloat(result);
+            while (nextHandle != null && !(nextHandle.getInstruction() instanceof FSTORE && ((FSTORE) nextHandle.getInstruction()).getIndex() == storeIndex && nextHandle.getInstruction().getOpcode() == handle.getInstruction().getOpcode())){
+                if(nextHandle.getInstruction() instanceof FLOAD && ((FLOAD) nextHandle.getInstruction()).getIndex() == storeIndex) {
+                    this.newilist.insert(nextHandle, new LDC(constantIndex));
+                    this.newilist.setPositions();
+                    try {
+                        nextHandle = nextHandle.getNext();
+                        boolean success = removeInstruction(nextHandle.getPrev());
+                    } catch (Exception e) {}
+                } else {
+                    nextHandle = nextHandle.getNext();
+                }
+            }
+            if(removeInstruction(handle)) return true;
+            else return false;
+        } else if (handle.getInstruction() instanceof LSTORE && value != null) {
+            long result = (long) value;
+            storeIndex = ((LSTORE) handle.getInstruction()).getIndex();
+            constantIndex = originalcpgen.addLong(result);
+            while (nextHandle != null && !(nextHandle.getInstruction() instanceof LSTORE && ((LSTORE) nextHandle.getInstruction()).getIndex() == storeIndex && nextHandle.getInstruction().getOpcode() == handle.getInstruction().getOpcode())){
+                if(nextHandle.getInstruction() instanceof LLOAD && ((LLOAD) nextHandle.getInstruction()).getIndex() == storeIndex) {
+                    this.newilist.insert(nextHandle, new LDC2_W(constantIndex));
+                    this.newilist.setPositions();
+                    try {
+                        nextHandle = nextHandle.getNext();
+                        boolean success = removeInstruction(nextHandle.getPrev());
+                    } catch (Exception e) {}
+                } else {
+                    nextHandle = nextHandle.getNext();
+                }
+            }
+            if(removeInstruction(handle)) return true;
+            else return false;
+        } else {
+            return false;
+        }
 	}
+
+    private boolean handleOther(InstructionHandle handle) {
+        if(handle.getInstruction() instanceof NOP) {
+            if(removeInstruction(handle)) return true;
+            else return false;
+        } else if (handle.getInstruction() instanceof IINC) {
+            int nextincrement = ((IINC) handle.getInstruction()).getIncrement();
+            int iincIndex = ((IINC) handle.getInstruction()).getIndex();
+            this.newilist.insert(handle, new BIPUSH((byte) nextincrement));
+            this.newilist.insert(handle, new ILOAD(iincIndex));
+            this.newilist.insert(handle, new IADD());
+            this.newilist.insert(handle, new ISTORE(iincIndex));
+            if(removeInstruction(handle)) return true;
+            else return false;
+        } else {
+            return false;
+        }
+    }
 
 	private int isInstruction(InstructionHandle handle) {
 		if(handle.getInstruction() instanceof ArithmeticInstruction) {
@@ -440,24 +551,13 @@ public class ConstantFolder
 			return 8;
 		} else if (handle.getInstruction() instanceof LDC || handle.getInstruction() instanceof LDC_W || handle.getInstruction() instanceof LDC2_W) {
             return 9;
+        } else if (handle.getInstruction() instanceof NOP ) {
+            return 11;
         } else {
 			return 0;
 		}
 	}
 
-    // Removes constants related to the instruction that you need to remove
-    private boolean removeConstant(int index) {
-        System.out.println("REMOVING CONSTANT : ");
-        ConstantPool cp = originalcpgen.getConstantPool();
-        Constant[] cs = cp.getConstantPool();
-        cs[index] = null;
-        try {
-            originalcpgen = new ConstantPoolGen(cs);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
     private boolean removeInstruction(InstructionHandle handle) {
         System.out.println("REMOVING INSTRUCTION : ");
@@ -465,6 +565,7 @@ public class ConstantFolder
         this.newilist.redirectBranches(handle,handle.getPrev());
         try {
             this.newilist.delete(handle);
+            this.newilist.setPositions();
             return true;
         } catch (Exception e) {return false;}
     }
@@ -479,21 +580,21 @@ public class ConstantFolder
         MethodGen mgen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), this.newilist,
             cpgen);
 
+        boolean success;
 		for (InstructionHandle handle : this.newilist.getInstructionHandles()) {
 			int type = isInstruction(handle);
 			switch(type) {
 				case 1:
-				    handleArithmetic(handle);
+				    success = handleArithmetic(handle);
 				break;
 				case 2:
-				    // handleStore(handle);
-                    System.out.println(type);
-                    System.out.println(handle.getInstruction());
+				    success = handleStore(handle);
 				break;
                 case 4:
-                    System.out.println(type);
-                    System.out.println(handle.getInstruction());
+                    success = handleOther(handle);
                 break;
+                case 11:
+                    success = handleOther(handle);
 				default:
 				break;
 			}
