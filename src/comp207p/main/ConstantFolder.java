@@ -62,10 +62,8 @@ public class ConstantFolder
 
 	private boolean handleArithmetic(InstructionHandle handle) {
         Number value = handleOperations(handle);
-        System.out.println("VALUE: ");
-        System.out.println(value);
-
         int constantIndex = 0;
+        System.out.println("ARITHMETIC : " + value);
         if(value != null){
             if (value instanceof Integer) {
                 constantIndex = originalcpgen.addInteger((int) value);
@@ -89,6 +87,13 @@ public class ConstantFolder
 		return false;
 	}
 
+    private boolean handleStore(InstructionHandle handle) {
+        boolean success = propogate(handle);
+        if(success){
+            removeInstruction(handle);
+            return true;
+        } else return false;
+    }
 
 	// Get values from operations that generate values
 
@@ -106,9 +111,10 @@ public class ConstantFolder
 		// Cycles through instructions until a stack changing operation is found
 		InstructionHandle prevHandle = handle;
 
-        while(prevHandle != null && isInstruction(prevHandle) == 0 ){
+        while(prevHandle != null && (isInstruction(prevHandle) == 0 )){
             prevHandle = prevHandle.getPrev();
         }
+
 		if(prevHandle.getInstruction() instanceof DADD) {
 			Number[] nums = getLatestValues( prevHandle);
 			if (nums == null) return null;
@@ -174,11 +180,11 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof IMUL) {
 			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
-            return ((double) nums[0] * (double) nums[1] ); 
+            return ((int) nums[0] * (int) nums[1] ); 
 		} else if(prevHandle.getInstruction() instanceof INEG) {
 			Number nums = handleOperations( prevHandle);
             if (nums == null) return null;
-            if(removeInstruction(prevHandle)) return (0 - (double) nums );
+            if(removeInstruction(prevHandle)) return (0 - (int) nums );
             else return null;
 		} else if(prevHandle.getInstruction() instanceof IOR) {
 			Number[] nums = getLatestValues( prevHandle);
@@ -187,7 +193,7 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof IREM) {
 			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
-            return ((double) nums[1] % (double) nums[0] );
+            return ((int) nums[1] % (int) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof ISHL) {
 			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
@@ -199,7 +205,7 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof ISUB) {
 			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
-            return ((double) nums[1] - (double) nums[0] );
+            return ((int) nums[1] - (int) nums[0] );
 		} else if(prevHandle.getInstruction() instanceof IUSHR) {
 			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
@@ -248,7 +254,7 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof LSUB) {
 			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
-            return ((double) nums[0] - (double) nums[1] );
+            return ((long) nums[0] - (long) nums[1] );
 		} else if(prevHandle.getInstruction() instanceof LUSHR) {
 			Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
@@ -295,7 +301,7 @@ public class ConstantFolder
 		} else if(prevHandle.getInstruction() instanceof FCMPL) {
             Number[] nums = getLatestValues( prevHandle);
             if (nums == null) return null;
-            double temp = (float) nums[0] - (float) nums[1];
+            float temp = (float) nums[0] - (float) nums[1];
             if (temp > 0 ) {
                 return 1;
             } else if (temp < 0) {
@@ -421,40 +427,40 @@ public class ConstantFolder
         return null;
 	}
 
-	private boolean handleStore(InstructionHandle handle) {
-        Number value = handleOperations(handle);
+	private boolean propogate(InstructionHandle handle) {
+        System.out.print("HANDLING STORE: ");
+        System.out.println(handle.getInstruction());
+        Number value = handleOperations(handle.getPrev());
+        System.out.println("VALUE : " + value);
+
         int storeIndex = 0, constantIndex = 0;
         InstructionHandle nextHandle = handle.getNext();
 
         if (handle.getInstruction() instanceof ISTORE && value != null) {
             int result = (int) value;
             storeIndex = ((ISTORE) handle.getInstruction()).getIndex();
-
-            if(result < -32768 || result > 32768) constantIndex = originalcpgen.addInteger(result);
-
+            if (result < -32768 || result > 32767) constantIndex = originalcpgen.addInteger(result);
             while (nextHandle != null && !(nextHandle.getInstruction() instanceof ISTORE && ((ISTORE) nextHandle.getInstruction()).getIndex() == storeIndex && nextHandle.getInstruction().getOpcode() == handle.getInstruction().getOpcode())){
                 if(nextHandle.getInstruction() instanceof ILOAD && ((ILOAD) nextHandle.getInstruction()).getIndex() == storeIndex) {
-                    if (result > 32767 || result <-32767) {
+                    if (result < -32767 || result > 32768) {
                         this.newilist.insert(nextHandle, new LDC(constantIndex));
-                        this.newilist.setPositions();
-                    } else if (result < -128 || result > 127) {
-                        this.newilist.insert(nextHandle, new SIPUSH((short) value));
-                        this.newilist.setPositions();
-                    } else {
-                        this.newilist.insert(nextHandle, new BIPUSH((byte) value));
-                        this.newilist.setPositions();
                     }
-
+                    else if (result < -128 || result > 127) {
+                        this.newilist.insert(nextHandle, new SIPUSH((short) result));
+                    }
+                    else {
+                        this.newilist.insert(nextHandle, new BIPUSH((byte) result));
+                    }
+                    this.newilist.setPositions();
                     try {
+                        boolean success = removeInstruction(nextHandle);
                         nextHandle = nextHandle.getNext();
-                        boolean success = removeInstruction(nextHandle.getPrev());
                     } catch (Exception e) {}
                 } else {
                     nextHandle = nextHandle.getNext();
                 }
             }
-            if(removeInstruction(handle)) return true;
-            else return false;
+            return true;
         } else if (handle.getInstruction() instanceof DSTORE && value != null) {
             double result = (double) value;
             storeIndex = ((DSTORE) handle.getInstruction()).getIndex();
@@ -464,15 +470,14 @@ public class ConstantFolder
                     this.newilist.insert(nextHandle, new LDC2_W(constantIndex));
                     this.newilist.setPositions();
                     try {
+                        boolean success = removeInstruction(nextHandle);
                         nextHandle = nextHandle.getNext();
-                        boolean success = removeInstruction(nextHandle.getPrev());
                     } catch (Exception e) {}
                 } else {
                     nextHandle = nextHandle.getNext();
                 }
             }
-            if(removeInstruction(handle)) return true;
-            else return false;
+            return true;
         } else if (handle.getInstruction() instanceof FSTORE && value != null) {
             float result = (float) value;
             storeIndex = ((FSTORE) handle.getInstruction()).getIndex();
@@ -482,15 +487,14 @@ public class ConstantFolder
                     this.newilist.insert(nextHandle, new LDC(constantIndex));
                     this.newilist.setPositions();
                     try {
+                        boolean success = removeInstruction(nextHandle);
                         nextHandle = nextHandle.getNext();
-                        boolean success = removeInstruction(nextHandle.getPrev());
                     } catch (Exception e) {}
                 } else {
                     nextHandle = nextHandle.getNext();
                 }
             }
-            if(removeInstruction(handle)) return true;
-            else return false;
+            return true;
         } else if (handle.getInstruction() instanceof LSTORE && value != null) {
             long result = (long) value;
             storeIndex = ((LSTORE) handle.getInstruction()).getIndex();
@@ -500,15 +504,14 @@ public class ConstantFolder
                     this.newilist.insert(nextHandle, new LDC2_W(constantIndex));
                     this.newilist.setPositions();
                     try {
+                        boolean success = removeInstruction(nextHandle);
                         nextHandle = nextHandle.getNext();
-                        boolean success = removeInstruction(nextHandle.getPrev());
                     } catch (Exception e) {}
                 } else {
                     nextHandle = nextHandle.getNext();
                 }
             }
-            if(removeInstruction(handle)) return true;
-            else return false;
+            return true;
         } else {
             return false;
         }
@@ -565,12 +568,13 @@ public class ConstantFolder
     private boolean removeInstruction(InstructionHandle handle) {
         System.out.println("REMOVING INSTRUCTION : ");
         System.out.println(handle.getInstruction());
-        this.newilist.redirectBranches(handle,handle.getPrev());
+        if(handle.getPrev() != null) {
+            this.newilist.redirectBranches(handle,handle.getPrev());            
+        }
         try {
             this.newilist.delete(handle);
-            this.newilist.setPositions();
-            return true;
-        } catch (Exception e) {return false;}
+        } catch (Exception e) {}
+        return true;
     }
 
 	private Method optimiseInstructions(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
@@ -585,6 +589,8 @@ public class ConstantFolder
 
         boolean success;
 		for (InstructionHandle handle : this.newilist.getInstructionHandles()) {
+            System.out.println("OPERATION : " + handle.getInstruction());
+
 			int type = isInstruction(handle);
 			switch(type) {
 				case 1:
@@ -641,9 +647,9 @@ public class ConstantFolder
         gen.setMajor(50);
 		this.optimised = gen.getJavaClass();
 
-        System.out.println();
-        System.out.println("NEW :: ");
-        printClass(gen);
+        // System.out.println();
+        // System.out.println("NEW :: ");
+        // printClass(gen);
 
 
 	}
